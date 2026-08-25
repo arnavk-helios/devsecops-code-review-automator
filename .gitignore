@@ -1,0 +1,4 @@
+devsecops-env/
+audit_logs.db
+.env
+__pycache__/
