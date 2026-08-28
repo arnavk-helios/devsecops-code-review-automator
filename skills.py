@@ -1,3 +1,12 @@
+import os
+import subprocess
+import json
+import sqlite3
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables from .env
+load_dotenv()
 import requests
 import os
 
@@ -101,3 +110,64 @@ def query_pr_history(limit=5):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return []
+import os
+import requests
+
+def post_pr_comment(owner, repo, pr_number, comment_body, github_token=None):
+    """
+    Posts a Markdown comment directly to a GitHub Pull Request discussion thread.
+    """
+    token = github_token or os.environ.get("GITHUB_TOKEN")
+    if not token:
+        print("Error: GITHUB_TOKEN is required to post comments.")
+        return False
+
+    url = f"https://api.github.com/repos/{owner}/{repo}/issues/{pr_number}/comments"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    payload = {"body": comment_body}
+
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        if response.status_code == 201:
+            print(f"Successfully posted review comment to PR #{pr_number}")
+            return True
+        else:
+            print(f"Failed to post comment. HTTP {response.status_code}: {response.text}")
+            return False
+    except Exception as e:
+        print(f"Error posting comment to GitHub: {e}")
+        return False
+import os
+import requests
+
+def send_discord_alert(pr_number, issue_count=0):
+    """
+    Broadcasts a scan summary alert directly to a Discord channel via Webhook.
+    """
+    webhook_url = os.environ.get("DISCORD_WEBHOOK_URL")
+    if not webhook_url:
+        print("Error: DISCORD_WEBHOOK_URL is not set.")
+        return False
+
+    # Format the message based on the scan results
+    if issue_count > 0:
+        message = f"🚨 **PR #{pr_number} scanned:** {issue_count} security issues found. Review required."
+    else:
+        message = f"✅ **PR #{pr_number} scanned:** 0 issues found. Code is clean!"
+
+    payload = {"content": message}
+
+    try:
+        response = requests.post(webhook_url, json=payload)
+        if response.status_code == 204:
+            print(f"Successfully sent Discord alert for PR #{pr_number}")
+            return True
+        else:
+            print(f"Failed to send Discord alert. HTTP {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"Error posting to Discord: {e}")
+        return False
